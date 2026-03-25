@@ -26,7 +26,7 @@ public partial class MainViewModel : ViewModelBase, IDisposable
     [ObservableProperty] private bool _isMonitoringEnabled = true;
     [ObservableProperty] private bool _isPrimaryOOFSelected = true;
     [ObservableProperty] private bool _isExtendedOOFSelected;
-    [ObservableProperty] private DateTimeOffset _extendedOOFEndDate = DateTimeOffset.Now.AddDays(7);
+    [ObservableProperty] private string _extendedOOFEndDateText = DateTime.Now.AddDays(7).ToString("yyyy-MM-dd");
     [ObservableProperty] private string _internalMessage = string.Empty;
     [ObservableProperty] private string _externalMessage = string.Empty;
     [ObservableProperty] private int _selectedExternalAudienceIndex = 2; // Default: All
@@ -109,7 +109,7 @@ public partial class MainViewModel : ViewModelBase, IDisposable
                 IsExtendedOOFSelected = true;
                 IsPrimaryOOFSelected = false;
                 if (schedule.ExtendedOOFEndDate.HasValue)
-                    ExtendedOOFEndDate = new DateTimeOffset(schedule.ExtendedOOFEndDate.Value);
+                    ExtendedOOFEndDateText = schedule.ExtendedOOFEndDate.Value.ToString("yyyy-MM-dd");
             }
 
             // Try silent sign-in
@@ -234,7 +234,8 @@ public partial class MainViewModel : ViewModelBase, IDisposable
                 PrimaryMessage = primaryMessage,
                 ExtendedMessage = extendedMessage,
                 IsExtendedOOFActive = IsExtendedOOFSelected,
-                ExtendedOOFEndDate = IsExtendedOOFSelected ? ExtendedOOFEndDate.DateTime : null,
+                ExtendedOOFEndDate = IsExtendedOOFSelected && DateTime.TryParse(ExtendedOOFEndDateText, out var endDate)
+                    ? endDate : null,
                 ExternalAudience = (ExternalAudienceScope)SelectedExternalAudienceIndex
             };
 
