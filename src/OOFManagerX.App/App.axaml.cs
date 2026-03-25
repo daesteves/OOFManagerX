@@ -99,7 +99,7 @@ public partial class App : Application
         };
 
         var iconStream = Assembly.GetExecutingAssembly()
-            .GetManifestResourceStream("OOFManagerX.App.Assets.oofsponder.png");
+            .GetManifestResourceStream("OOFManagerX.App.Assets.oofmanagerx.png");
         if (iconStream != null)
             _trayIcon.Icon = new WindowIcon(iconStream);
 

@@ -195,7 +195,7 @@ public partial class MainWindow : Window
             }
         };
 
-        var logoUri = new Uri("avares://OOFManagerX.App/Assets/oofsponder-logo.png");
+        var logoUri = new Uri("avares://OOFManagerX.App/Assets/oofmanagerx-logo.png");
         var logoImage = new Image
         {
             Source = new Bitmap(Avalonia.Platform.AssetLoader.Open(logoUri)),

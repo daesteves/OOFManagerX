@@ -16,7 +16,7 @@ on:
 
 env:
   DOTNET_VERSION: '8.0.x'
-  SOLUTION_PATH: 'OOFSponder.sln'
+  SOLUTION_PATH: 'OOFManagerX.sln'
 
 jobs:
   build:
@@ -41,7 +41,7 @@ jobs:
         run: dotnet build ${{ env.SOLUTION_PATH }} -c Release -p:Platform=${{ matrix.platform }} --no-restore
 
       - name: Run tests
-        run: dotnet test tests/OOFSponder.Core.Tests/OOFSponder.Core.Tests.csproj -c Release --no-build --verbosity normal
+        run: dotnet test tests/OOFManagerX.Core.Tests/OOFManagerX.Core.Tests.csproj -c Release --no-build --verbosity normal
         continue-on-error: true
 
       # Build single-file EXE (framework-dependent)

@@ -6,7 +6,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
-    <ApplicationIcon>Assets\oofsponder.ico</ApplicationIcon>
+    <ApplicationIcon>Assets\oofmanagerx.ico</ApplicationIcon>
 
     <!-- App Info -->
     <Version>0.2.1</Version>
@@ -36,9 +36,9 @@
   </ItemGroup>
 
   <ItemGroup>
-    <AvaloniaResource Include="Assets\**" Exclude="Assets\oofsponder.png" />
-    <EmbeddedResource Include="Assets\oofsponder.png" />
-    <AvaloniaResource Include="Assets\oofsponder-logo.png" />
+    <AvaloniaResource Include="Assets\**" Exclude="Assets\oofmanagerx.png" />
+    <EmbeddedResource Include="Assets\oofmanagerx.png" />
+    <AvaloniaResource Include="Assets\oofmanagerx-logo.png" />
   </ItemGroup>
 
   <ItemGroup>

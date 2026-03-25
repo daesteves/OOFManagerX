@@ -10,7 +10,7 @@
         WindowStartupLocation="CenterScreen"
         Title="OOFManagerX"
         Background="{DynamicResource BgDeepBrush}"
-        Icon="/Assets/oofsponder.ico">
+        Icon="/Assets/oofmanagerx.ico">
 
   <Window.Styles>
     <Style Selector="Border.card">
@@ -104,7 +104,7 @@
       <Grid ColumnDefinitions="Auto,*,Auto">
         <Border Grid.Column="0" Width="38" Height="38" CornerRadius="12" Margin="0,0,12,0"
                 ClipToBounds="True">
-          <Image Source="/Assets/oofsponder-logo.png" Width="38" Height="38" Stretch="UniformToFill"/>
+          <Image Source="/Assets/oofmanagerx-logo.png" Width="38" Height="38" Stretch="UniformToFill"/>
         </Border>
         <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="1">
           <TextBlock Text="OOFManagerX" FontSize="16" FontWeight="Bold"

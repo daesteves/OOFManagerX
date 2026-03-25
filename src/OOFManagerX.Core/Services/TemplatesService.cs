@@ -1,4 +1,5 @@
 using System.Text.Json;
+using Microsoft.Extensions.Logging;
 using OOFManagerX.Core.Models;
 
 namespace OOFManagerX.Core.Services;
@@ -20,9 +21,15 @@ public class TemplatesService
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase
     };
 
+    private readonly ILogger<TemplatesService> _logger;
     private List<Template> _templates = new();
 
     public IReadOnlyList<Template> Templates => _templates.AsReadOnly();
+
+    public TemplatesService(ILogger<TemplatesService> logger)
+    {
+        _logger = logger;
+    }
 
     public async Task LoadAsync()
     {
@@ -34,8 +41,9 @@ public class TemplatesService
                 _templates = JsonSerializer.Deserialize<List<Template>>(json, JsonOptions) ?? new();
             }
         }
-        catch
+        catch (Exception ex)
         {
+            _logger.LogWarning(ex, "Failed to load templates, starting with empty list");
             _templates = new();
         }
     }
@@ -66,8 +74,9 @@ public class TemplatesService
             var json = JsonSerializer.Serialize(_templates, JsonOptions);
             await File.WriteAllTextAsync(TemplatesFile, json);
         }
-        catch
+        catch (Exception ex)
         {
+            _logger.LogWarning(ex, "Failed to save templates");
         }
     }
 }
