@@ -261,6 +261,7 @@ public class BackgroundOOFService : IBackgroundOOFService
         _timer?.Dispose();
         _timer = null;
 
+        SyncStatusChanged = null;
         IsRunning = false;
     }
 }

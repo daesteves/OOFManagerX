@@ -12,8 +12,10 @@ using OOFManagerX.App.Views;
 using OOFManagerX.Core.Interfaces;
 using OOFManagerX.Core.Services;
 using System;
+using System.IO;
 using System.Linq;
 using System.Reflection;
+using System.Runtime.InteropServices;
 
 namespace OOFManagerX.App;
 
@@ -63,7 +65,14 @@ public partial class App : Application
             };
             _updateService.Start();
 
-            desktop.ShutdownRequested += (_, _) => _updateService.Stop();
+            desktop.ShutdownRequested += (_, _) =>
+            {
+                _updateService.Stop();
+                vm.Dispose();
+
+                // Ensure the process fully exits
+                Environment.Exit(0);
+            };
 
             _ = vm.InitializeAsync();
         }
@@ -123,9 +132,34 @@ public partial class App : Application
         window.Activate();
     }
 
+    /// <summary>
+    /// Hints the OS to page out unused memory from the working set.
+    /// Does NOT force managed GC — the runtime's GCConserveMemory=9 setting
+    /// handles heap compaction safely on its own schedule.
+    /// </summary>
+    internal static void TrimMemory()
+    {
+        try
+        {
+            SetProcessWorkingSetSizeW(System.Diagnostics.Process.GetCurrentProcess().Handle, -1, -1);
+        }
+        catch { }
+    }
+
+    [DllImport("kernel32.dll", SetLastError = true)]
+    private static extern bool SetProcessWorkingSetSizeW(IntPtr hProcess, nint dwMinimumWorkingSetSize, nint dwMaximumWorkingSetSize);
+
     private static void ConfigureServices(IServiceCollection services)
     {
-        services.AddLogging(builder => builder.SetMinimumLevel(LogLevel.Debug));
+        var logsDir = Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+            "OOFManagerX", "logs");
+
+        services.AddLogging(builder =>
+        {
+            builder.SetMinimumLevel(LogLevel.Debug);
+            builder.AddProvider(new FileLoggerProvider(logsDir));
+        });
 
         services.AddSingleton<ISettingsService, SettingsService>();
         services.AddSingleton<IScheduleService, ScheduleService>();

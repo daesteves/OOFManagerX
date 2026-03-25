@@ -158,5 +158,6 @@ public class UpdateCheckService
     {
         _timer?.Dispose();
         _timer = null;
+        _httpClient.Dispose();
     }
 }

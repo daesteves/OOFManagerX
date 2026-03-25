@@ -17,7 +17,23 @@
     <!-- Trimming for small binaries -->
     <PublishTrimmed>true</PublishTrimmed>
     <TrimMode>link</TrimMode>
+
+    <!-- Memory optimization: Use Workstation GC (better for desktop apps with UI) -->
+    <ServerGarbageCollection>false</ServerGarbageCollection>
+    <ConcurrentGarbageCollection>true</ConcurrentGarbageCollection>
+    <GCConserveMemory>9</GCConserveMemory>
+    <TieredCompilation>true</TieredCompilation>
+    <TieredCompilationQuickJit>true</TieredCompilationQuickJit>
+    <OptimizationPreference>Size</OptimizationPreference>
+
+    <!-- Keep reflection-based JSON serialization working with trimming -->
+    <JsonSerializerIsReflectionEnabledByDefault>true</JsonSerializerIsReflectionEnabledByDefault>
   </PropertyGroup>
+
+  <!-- Prevent trimmer from stripping model constructors needed for JSON deserialization -->
+  <ItemGroup>
+    <TrimmerRootAssembly Include="OOFManagerX.Core" />
+  </ItemGroup>
 
   <ItemGroup>
     <AvaloniaResource Include="Assets\**" Exclude="Assets\oofsponder.png" />

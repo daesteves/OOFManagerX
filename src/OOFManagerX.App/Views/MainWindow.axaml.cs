@@ -38,6 +38,7 @@ public partial class MainWindow : Window
     {
         e.Cancel = true;
         Hide();
+        App.TrimMemory();
     }
 
     public void OnSetInterval(object? sender, RoutedEventArgs e)
@@ -153,8 +154,21 @@ public partial class MainWindow : Window
             return;
         }
 
-        var lines = File.ReadLines(latestLog).TakeLast(100).ToList();
+        var lines = ReadLogFileLines(latestLog, 100);
         await ShowTextDialog("Logs", string.Join("\n", lines));
+    }
+
+    /// <summary>
+    /// Reads the last N lines from a log file without conflicting with the active writer.
+    /// </summary>
+    private static List<string> ReadLogFileLines(string path, int lastN)
+    {
+        using var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
+        using var reader = new StreamReader(stream);
+        var allLines = new List<string>();
+        while (reader.ReadLine() is { } line)
+            allLines.Add(line);
+        return allLines.Count <= lastN ? allLines : allLines.GetRange(allLines.Count - lastN, lastN);
     }
 
     public void OnOpenLogsFolder(object? sender, RoutedEventArgs e)

@@ -9,8 +9,9 @@ using OOFManagerX.Core.Models;
 
 namespace OOFManagerX.App.ViewModels;
 
-public partial class MainViewModel : ViewModelBase
+public partial class MainViewModel : ViewModelBase, IDisposable
 {
+    private bool _disposed;
     private readonly IScheduleService _scheduleService;
     private readonly IOOFService _oofService;
     private readonly IAuthenticationService _authService;
@@ -280,6 +281,13 @@ public partial class MainViewModel : ViewModelBase
     private void OnSyncStatusChanged(object? sender, OOFSyncEventArgs e)
     {
         StatusMessage = e.Message;
+    }
+
+    public void Dispose()
+    {
+        if (_disposed) return;
+        _disposed = true;
+        _backgroundService.SyncStatusChanged -= OnSyncStatusChanged;
     }
 }
 
