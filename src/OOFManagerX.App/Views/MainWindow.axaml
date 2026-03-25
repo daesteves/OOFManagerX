@@ -207,16 +207,22 @@
         <TextBlock Classes="section-label" Text="OOF MESSAGES"/>
         <Border Classes="card">
           <StackPanel Spacing="12">
-            <!-- Type selector -->
-            <StackPanel Orientation="Horizontal" Spacing="12">
+            <!-- Type selector + end date -->
+            <StackPanel Orientation="Horizontal" Spacing="12" VerticalAlignment="Center">
               <RadioButton Content="Primary" IsChecked="{Binding IsPrimaryOOFSelected}"
                            GroupName="OOFType" FontSize="12"
                            Foreground="{StaticResource TextPrimaryBrush}"/>
               <RadioButton Content="Extended" IsChecked="{Binding IsExtendedOOFSelected}"
                            GroupName="OOFType" FontSize="12"
                            Foreground="{StaticResource TextPrimaryBrush}"/>
-              <DatePicker SelectedDate="{Binding ExtendedOOFEndDate}"
-                          IsVisible="{Binding IsExtendedOOFSelected}" VerticalAlignment="Center"/>
+              <StackPanel Orientation="Horizontal" Spacing="4"
+                          IsVisible="{Binding IsExtendedOOFSelected}" VerticalAlignment="Center">
+                <TextBlock Text="until" FontSize="11" VerticalAlignment="Center"
+                           Foreground="{StaticResource TextMutedBrush}"/>
+                <TextBox Text="{Binding ExtendedOOFEndDateText}" Width="90" FontSize="12"
+                         TextAlignment="Center" HorizontalContentAlignment="Center"
+                         VerticalAlignment="Center" VerticalContentAlignment="Center" Padding="4,3"/>
+              </StackPanel>
             </StackPanel>
 
             <!-- Internal message -->

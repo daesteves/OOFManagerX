@@ -48,25 +48,47 @@ public static class LocalizedStrings
 
     /// <summary>
     /// Formats a scheduled OOF status message.
+    /// Includes dates when the window spans more than one calendar day.
     /// </summary>
     public static string FormatOOFScheduled(DateTime start, DateTime end)
     {
         var now = DateTime.Now;
         var culture = CultureInfo.CurrentCulture;
-        
+        var sameDay = start.Date == end.Date;
+        var nextDay = end.Date == start.Date.AddDays(1);
+
         if (start <= now && end > now)
         {
-            // Currently active
-            return string.Format(culture, GetString("OOF active until {0}"), 
-                end.ToString("ddd MMM dd, h:mm tt", culture));
+            // Currently active — show end with date if it's far out
+            var endFmt = (end.Date - now.Date).TotalDays > 1
+                ? end.ToString("h:mm tt MM/dd", culture)
+                : end.ToString("ddd h:mm tt", culture);
+            return string.Format(culture, GetString("OOF active until {0}"), endFmt);
+        }
+
+        // Scheduled for future
+        string startFmt, endFmt2;
+
+        if (sameDay)
+        {
+            // Same day: "OOF scheduled: 5:00 PM → 9:00 PM"
+            startFmt = start.ToString("h:mm tt", culture);
+            endFmt2 = end.ToString("h:mm tt", culture);
+        }
+        else if (nextDay)
+        {
+            // Adjacent days: "OOF scheduled: 5:00 PM → 9:00 AM"
+            startFmt = start.ToString("h:mm tt", culture);
+            endFmt2 = end.ToString("h:mm tt", culture);
         }
         else
         {
-            // Scheduled for future
-            return string.Format(culture, GetString("OOF scheduled: {0} → {1}"),
-                start.ToString("ddd h:mm tt", culture),
-                end.ToString("ddd h:mm tt", culture));
+            // Multi-day span: "OOF scheduled: 5:00 PM → 9:00 AM MM/dd"
+            startFmt = start.ToString("h:mm tt", culture);
+            endFmt2 = end.ToString("h:mm tt MM/dd", culture);
         }
+
+        return string.Format(culture, GetString("OOF scheduled: {0} → {1}"), startFmt, endFmt2);
     }
 
     /// <summary>
