@@ -1,0 +1,48 @@
+<Application xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="OOFManagerX.App.App"
+             RequestedThemeVariant="Dark">
+
+    <Application.Resources>
+        <SolidColorBrush x:Key="AccentBrush" Color="#6366F1" />
+        <SolidColorBrush x:Key="AccentLightBrush" Color="#818CF8" />
+        <SolidColorBrush x:Key="BgDeepBrush" Color="#0C0F1D" />
+        <SolidColorBrush x:Key="BgBaseBrush" Color="#111827" />
+        <SolidColorBrush x:Key="SurfaceBrush" Color="#1F2937" />
+        <SolidColorBrush x:Key="SurfaceBorderBrush" Color="#374151" />
+        <SolidColorBrush x:Key="TextPrimaryBrush" Color="#F9FAFB" />
+        <SolidColorBrush x:Key="TextSecondaryBrush" Color="#9CA3AF" />
+        <SolidColorBrush x:Key="TextMutedBrush" Color="#6B7280" />
+    </Application.Resources>
+
+    <Application.Styles>
+        <FluentTheme>
+            <FluentTheme.Palettes>
+                <ColorPaletteResources x:Key="Dark"
+                    Accent="#6366F1"
+                    AltHigh="#111827" AltLow="#111827" AltMedium="#111827" AltMediumHigh="#111827" AltMediumLow="#111827"
+                    BaseHigh="#F9FAFB" BaseLow="#374151" BaseMedium="#9CA3AF" BaseMediumHigh="#D1D5DB" BaseMediumLow="#6B7280"
+                    ChromeAltLow="#F9FAFB" ChromeBlackHigh="#0C0F1D" ChromeBlackLow="#F9FAFB" ChromeBlackMedium="#111827" ChromeBlackMediumLow="#1F2937"
+                    ChromeDisabledHigh="#374151" ChromeDisabledLow="#6B7280" ChromeGray="#4B5563" ChromeHigh="#4B5563"
+                    ChromeLow="#1F2937" ChromeMedium="#1F2937" ChromeMediumLow="#1F2937" ChromeWhite="#F9FAFB"
+                    ListLow="#1F2937" ListMedium="#374151" RegionColor="#111827" />
+            </FluentTheme.Palettes>
+        </FluentTheme>
+
+        <!-- Global TextBox override -->
+        <Style Selector="TextBox">
+          <Setter Property="Background" Value="{DynamicResource SurfaceBrush}" />
+          <Setter Property="BorderBrush" Value="{DynamicResource SurfaceBorderBrush}" />
+          <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}" />
+          <Setter Property="CornerRadius" Value="8" />
+        </Style>
+        <Style Selector="TextBox:focus /template/ Border#PART_BorderElement">
+          <Setter Property="BorderBrush" Value="{DynamicResource AccentBrush}" />
+        </Style>
+        <Style Selector="ComboBox">
+          <Setter Property="Background" Value="{DynamicResource SurfaceBrush}" />
+          <Setter Property="BorderBrush" Value="{DynamicResource SurfaceBorderBrush}" />
+          <Setter Property="CornerRadius" Value="8" />
+        </Style>
+    </Application.Styles>
+</Application>

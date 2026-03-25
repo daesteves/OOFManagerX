@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<Application
+    x:Class="OOFSponder.UI.App"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:converters="using:OOFSponder.UI.Converters"
+    xmlns:local="using:OOFSponder.UI">
+    <Application.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <XamlControlsResources xmlns="using:Microsoft.UI.Xaml.Controls" />
+            </ResourceDictionary.MergedDictionaries>
+            
+            <!-- Converters -->
+            <converters:BoolToVisibilityConverter x:Key="BoolToVisibilityConverter"/>
+            <converters:BoolToOpacityInverseConverter x:Key="BoolToOpacityInverseConverter"/>
+            
+            <!-- Colors -->
+            <Color x:Key="Primary">#0078D4</Color>
+            <SolidColorBrush x:Key="PrimaryBrush" Color="{StaticResource Primary}" />
+        </ResourceDictionary>
+    </Application.Resources>
+</Application>

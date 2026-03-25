@@ -1,0 +1,287 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:OOFManagerX.App.ViewModels"
+        xmlns:conv="using:OOFManagerX.App.Converters"
+        x:Class="OOFManagerX.App.Views.MainWindow"
+        x:DataType="vm:MainViewModel"
+        Width="644" Height="910"
+        MinWidth="420" MinHeight="560"
+        CanResize="True"
+        WindowStartupLocation="CenterScreen"
+        Title="OOFManagerX"
+        Background="{DynamicResource BgDeepBrush}"
+        Icon="/Assets/oofsponder.ico">
+
+  <Window.Styles>
+    <Style Selector="Border.card">
+      <Setter Property="Background" Value="{StaticResource SurfaceBrush}" />
+      <Setter Property="BorderBrush" Value="{StaticResource SurfaceBorderBrush}" />
+      <Setter Property="BorderThickness" Value="1" />
+      <Setter Property="CornerRadius" Value="16" />
+      <Setter Property="Padding" Value="16,14" />
+      <Setter Property="Margin" Value="0,0,0,14" />
+    </Style>
+    <Style Selector="TextBlock.section-label">
+      <Setter Property="FontSize" Value="11" />
+      <Setter Property="FontWeight" Value="SemiBold" />
+      <Setter Property="Foreground" Value="{StaticResource TextMutedBrush}" />
+      <Setter Property="Margin" Value="4,0,0,8" />
+    </Style>
+    <Style Selector="TextBlock.field-label">
+      <Setter Property="FontSize" Value="12" />
+      <Setter Property="Foreground" Value="{StaticResource TextSecondaryBrush}" />
+      <Setter Property="Margin" Value="0,0,0,4" />
+    </Style>
+    <Style Selector="Border.pill">
+      <Setter Property="CornerRadius" Value="20" />
+      <Setter Property="Padding" Value="14,5" />
+    </Style>
+    <Style Selector="Button.primary">
+      <Setter Property="Background">
+        <Setter.Value>
+          <LinearGradientBrush StartPoint="0%,0%" EndPoint="100%,100%">
+            <GradientStop Color="#6366F1" Offset="0"/>
+            <GradientStop Color="#8B5CF6" Offset="1"/>
+          </LinearGradientBrush>
+        </Setter.Value>
+      </Setter>
+      <Setter Property="Foreground" Value="White" />
+      <Setter Property="CornerRadius" Value="12" />
+      <Setter Property="Padding" Value="20,10" />
+      <Setter Property="FontWeight" Value="SemiBold" />
+      <Setter Property="FontSize" Value="13" />
+      <Setter Property="BorderThickness" Value="0" />
+    </Style>
+    <Style Selector="Button.primary:pointerover /template/ ContentPresenter">
+      <Setter Property="Background">
+        <Setter.Value>
+          <LinearGradientBrush StartPoint="0%,0%" EndPoint="100%,100%">
+            <GradientStop Color="#818CF8" Offset="0"/>
+            <GradientStop Color="#A78BFA" Offset="1"/>
+          </LinearGradientBrush>
+        </Setter.Value>
+      </Setter>
+      <Setter Property="Foreground" Value="White" />
+    </Style>
+    <Style Selector="Button.ghost">
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="Foreground" Value="{StaticResource AccentLightBrush}" />
+      <Setter Property="BorderBrush" Value="{StaticResource AccentBrush}" />
+      <Setter Property="BorderThickness" Value="1" />
+      <Setter Property="CornerRadius" Value="8" />
+      <Setter Property="Padding" Value="12,4" />
+      <Setter Property="FontSize" Value="11" />
+    </Style>
+    <Style Selector="Button.ghost:pointerover /template/ ContentPresenter">
+      <Setter Property="Background" Value="#20818CF8" />
+      <Setter Property="Foreground" Value="{StaticResource AccentLightBrush}" />
+    </Style>
+    <!-- Expander header link -->
+    <Style Selector="Button.expand-link">
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="Foreground" Value="{StaticResource AccentLightBrush}" />
+      <Setter Property="BorderThickness" Value="0" />
+      <Setter Property="Padding" Value="0" />
+      <Setter Property="FontSize" Value="12" />
+      <Setter Property="Cursor" Value="Hand" />
+    </Style>
+    <Style Selector="Button.expand-link:pointerover /template/ ContentPresenter">
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="Foreground" Value="{StaticResource AccentBrush}" />
+    </Style>
+  </Window.Styles>
+
+  <Grid RowDefinitions="Auto,Auto,*,Auto">
+
+    <!-- ═══ HEADER ═══ -->
+    <Border Grid.Row="0" Padding="20,14">
+      <Border.Background>
+        <LinearGradientBrush StartPoint="0%,0%" EndPoint="100%,100%">
+          <GradientStop Color="#111827" Offset="0"/>
+          <GradientStop Color="#1E1B4B" Offset="1"/>
+        </LinearGradientBrush>
+      </Border.Background>
+      <Grid ColumnDefinitions="Auto,*,Auto">
+        <Border Grid.Column="0" Width="38" Height="38" CornerRadius="12" Margin="0,0,12,0"
+                ClipToBounds="True">
+          <Image Source="/Assets/oofsponder-logo.png" Width="38" Height="38" Stretch="UniformToFill"/>
+        </Border>
+        <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="1">
+          <TextBlock Text="OOFManagerX" FontSize="16" FontWeight="Bold"
+                     Foreground="{StaticResource TextPrimaryBrush}"/>
+          <StackPanel Orientation="Horizontal" Spacing="6">
+            <TextBlock Text="{Binding UserDisplayName}" FontSize="11"
+                       Foreground="{StaticResource TextSecondaryBrush}"/>
+            <TextBlock Text="•" FontSize="11" Foreground="{StaticResource TextMutedBrush}"
+                       IsVisible="{Binding IsSignedIn}"/>
+            <TextBlock Text="Microsoft 365" FontSize="11"
+                       Foreground="{StaticResource TextMutedBrush}"
+                       IsVisible="{Binding IsSignedIn}"/>
+          </StackPanel>
+        </StackPanel>
+        <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+          <Button Content="Sign In" Command="{Binding SignInCommand}"
+                  IsVisible="{Binding IsNotSignedIn}" Classes="primary" Padding="14,6" FontSize="12"/>
+          <Button Content="Sign Out" Command="{Binding SignOutCommand}"
+                  IsVisible="{Binding IsSignedIn}" Classes="ghost"/>
+          <DropDownButton Content="⚙" FontSize="14" Padding="8,5" CornerRadius="8"
+                          Background="{StaticResource SurfaceBrush}"
+                          BorderBrush="{StaticResource SurfaceBorderBrush}" BorderThickness="1">
+            <DropDownButton.Flyout>
+              <MenuFlyout Placement="BottomEdgeAlignedRight">
+                <MenuItem Header="🔄  Sync Interval" x:Name="IntervalMenu">
+                  <MenuItem Header="  1 minute" Click="OnSetInterval" Tag="60000" x:Name="Interval1m"/>
+                  <MenuItem Header="● 5 minutes" Click="OnSetInterval" Tag="300000" x:Name="Interval5m"/>
+                  <MenuItem Header="  15 minutes" Click="OnSetInterval" Tag="900000" x:Name="Interval15m"/>
+                  <MenuItem Header="  30 minutes" Click="OnSetInterval" Tag="1800000" x:Name="Interval30m"/>
+                  <MenuItem Header="  1 hour" Click="OnSetInterval" Tag="3600000" x:Name="Interval1h"/>
+                </MenuItem>
+                <MenuItem Header="🚀  Start at Boot" x:Name="StartAtBootMenuItem" Click="OnToggleStartAtBoot"/>
+                <Separator/>
+                <MenuItem Header="📄  View Logs" Click="OnViewLogs"/>
+                <MenuItem Header="📂  Open Logs Folder" Click="OnOpenLogsFolder"/>
+                <Separator/>
+                <MenuItem Header="ℹ️  About" Click="OnAbout"/>
+                <Separator/>
+                <MenuItem Header="🚪  Exit" Click="OnExit"/>
+              </MenuFlyout>
+            </DropDownButton.Flyout>
+          </DropDownButton>
+        </StackPanel>
+      </Grid>
+    </Border>
+
+    <!-- ═══ UPDATE BANNER ═══ -->
+    <Border Grid.Row="1" Padding="16,10" IsVisible="{Binding IsUpdateAvailable}"
+            Background="#1AF59E0B" BorderBrush="#40F59E0B" BorderThickness="0,0,0,1">
+      <Grid ColumnDefinitions="*,Auto,Auto">
+        <TextBlock Grid.Column="0" Text="{Binding UpdateMessage}" FontSize="12" FontWeight="Medium"
+                   Foreground="#FBBF24" VerticalAlignment="Center"/>
+        <Button Grid.Column="1" Content="View Release" Classes="ghost" Margin="0,0,8,0"
+                Click="OnOpenUpdateUrl" VerticalAlignment="Center"/>
+        <Button Grid.Column="2" Content="✕" Command="{Binding DismissUpdateCommand}"
+                Background="Transparent" Foreground="{StaticResource TextMutedBrush}"
+                BorderThickness="0" Padding="6,2" FontSize="12" VerticalAlignment="Center"/>
+      </Grid>
+    </Border>
+
+    <!-- ═══ CONTENT ═══ -->
+    <ScrollViewer Grid.Row="2" Background="{StaticResource BgBaseBrush}"
+                  HorizontalScrollBarVisibility="Disabled">
+      <StackPanel Spacing="0" Margin="20,12,20,24">
+
+        <!-- ─── SCHEDULE ─── -->
+        <TextBlock Classes="section-label" Text="WORK SCHEDULE"/>
+        <Border Classes="card">
+          <ItemsControl ItemsSource="{Binding WorkingDays}">
+            <ItemsControl.ItemTemplate>
+              <DataTemplate x:DataType="vm:WorkingDayViewModel">
+                <Border Padding="10,5" CornerRadius="8" Background="#10FFFFFF" Margin="0,2">
+                  <Grid ColumnDefinitions="Auto,Auto,*">
+                    <TextBlock Text="{Binding DayName}" Grid.Column="0" FontSize="12" FontWeight="SemiBold"
+                               VerticalAlignment="Center" Foreground="{StaticResource TextPrimaryBrush}"
+                               Width="75"/>
+                    <CheckBox Grid.Column="1" IsChecked="{Binding IsOffWork}" Content="Off"
+                              Margin="0,0,8,0" FontSize="11" VerticalAlignment="Center" Padding="2,0,0,0"/>
+                    <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="4"
+                                HorizontalAlignment="Right"
+                                IsEnabled="{Binding IsNotOffWork}"
+                                Opacity="{Binding IsNotOffWork, Converter={x:Static conv:BoolConverters.ToOpacity}}">
+                      <TextBox Text="{Binding StartTimeText}" Width="54" FontSize="12"
+                               TextAlignment="Center" HorizontalContentAlignment="Center"
+                               VerticalAlignment="Center" VerticalContentAlignment="Center" Padding="4,3"/>
+                      <TextBlock Text="→" VerticalAlignment="Center" FontSize="10"
+                                 Foreground="{StaticResource TextMutedBrush}"/>
+                      <TextBox Text="{Binding EndTimeText}" Width="54" FontSize="12"
+                               TextAlignment="Center" HorizontalContentAlignment="Center"
+                               VerticalAlignment="Center" VerticalContentAlignment="Center" Padding="4,3"/>
+                    </StackPanel>
+                  </Grid>
+                </Border>
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+        </Border>
+
+        <!-- ─── MESSAGES ─── -->
+        <TextBlock Classes="section-label" Text="OOF MESSAGES"/>
+        <Border Classes="card">
+          <StackPanel Spacing="12">
+            <!-- Type selector -->
+            <StackPanel Orientation="Horizontal" Spacing="12">
+              <RadioButton Content="Primary" IsChecked="{Binding IsPrimaryOOFSelected}"
+                           GroupName="OOFType" FontSize="12"
+                           Foreground="{StaticResource TextPrimaryBrush}"/>
+              <RadioButton Content="Extended" IsChecked="{Binding IsExtendedOOFSelected}"
+                           GroupName="OOFType" FontSize="12"
+                           Foreground="{StaticResource TextPrimaryBrush}"/>
+              <DatePicker SelectedDate="{Binding ExtendedOOFEndDate}"
+                          IsVisible="{Binding IsExtendedOOFSelected}" VerticalAlignment="Center"/>
+            </StackPanel>
+
+            <!-- Internal message -->
+            <StackPanel Spacing="4">
+              <Grid ColumnDefinitions="*,Auto">
+                <TextBlock Classes="field-label" Text="Internal message (colleagues)"/>
+                <Button Grid.Column="1" Content="Preview" Classes="ghost"
+                        Tag="internal" Click="OnPreviewMessage"/>
+              </Grid>
+              <TextBox Text="{Binding InternalMessage}" AcceptsReturn="True" TextWrapping="Wrap"
+                       MinHeight="60" FontSize="13"/>
+            </StackPanel>
+
+            <!-- External message (collapsible) -->
+            <StackPanel Spacing="4">
+              <Button Classes="expand-link" Click="OnToggleExternal">
+                <StackPanel Orientation="Horizontal" Spacing="6">
+                  <TextBlock Text="{Binding IsExternalExpanded, Converter={x:Static conv:BoolConverters.ToChevron}}"
+                             FontSize="10" VerticalAlignment="Center"/>
+                  <TextBlock Text="External message" FontSize="12"/>
+                </StackPanel>
+              </Button>
+              <StackPanel Spacing="6" IsVisible="{Binding IsExternalExpanded}">
+                <Grid ColumnDefinitions="*,Auto">
+                  <ComboBox ItemsSource="{Binding ExternalAudienceOptions}"
+                            SelectedIndex="{Binding SelectedExternalAudienceIndex}"
+                            FontSize="11" Padding="8,3"/>
+                  <Button Grid.Column="1" Content="Preview" Classes="ghost"
+                          Tag="external" Click="OnPreviewMessage" Margin="8,0,0,0"/>
+                </Grid>
+                <TextBox Text="{Binding ExternalMessage}" AcceptsReturn="True" TextWrapping="Wrap"
+                         MinHeight="60" FontSize="13"/>
+              </StackPanel>
+            </StackPanel>
+
+            <TextBlock Text="✨ Supports Markdown formatting" FontSize="11"
+                       Foreground="{StaticResource TextMutedBrush}" Margin="0,2,0,0"/>
+          </StackPanel>
+        </Border>
+
+      </StackPanel>
+    </ScrollViewer>
+
+    <!-- ═══ FOOTER ═══ -->
+    <Border Grid.Row="3" Padding="20,10"
+            BorderThickness="0,1,0,0" BorderBrush="{StaticResource SurfaceBorderBrush}">
+      <Border.Background>
+        <LinearGradientBrush StartPoint="0%,0%" EndPoint="100%,100%">
+          <GradientStop Color="#111827" Offset="0"/>
+          <GradientStop Color="#1E1B4B" Offset="1"/>
+        </LinearGradientBrush>
+      </Border.Background>
+      <Grid ColumnDefinitions="Auto,*,Auto">
+        <ToggleSwitch Grid.Column="0" IsChecked="{Binding IsMonitoringEnabled}"
+                      OnContent="Monitoring" OffContent="Paused" FontSize="11"/>
+        <Border Grid.Column="1" Classes="pill" HorizontalAlignment="Center" VerticalAlignment="Center"
+                Background="#20818CF8" BorderBrush="#40818CF8" BorderThickness="1">
+          <TextBlock Text="{Binding StatusMessage}" FontSize="10" FontWeight="Medium"
+                     Foreground="{StaticResource AccentLightBrush}"
+                     TextTrimming="CharacterEllipsis"/>
+        </Border>
+        <Button Grid.Column="2" Content="💾  Save" Command="{Binding SaveSettingsCommand}"
+                Classes="primary" Padding="16,8" FontSize="12"/>
+      </Grid>
+    </Border>
+
+  </Grid>
+</Window>
