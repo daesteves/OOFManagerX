@@ -282,6 +282,19 @@ public partial class MainViewModel : ViewModelBase, IDisposable
     private void OnSyncStatusChanged(object? sender, OOFSyncEventArgs e)
     {
         StatusMessage = e.Message;
+
+        // If sync reports auth failure, update UI state
+        if (!e.Success && e.Message.Contains("Sign-in expired"))
+        {
+            IsSignedIn = false;
+            UserDisplayName = "Sign-in expired";
+        }
+        // If sync succeeded and we thought we were signed out, update UI
+        else if (e.Success && !IsSignedIn)
+        {
+            IsSignedIn = true;
+            UserDisplayName = _authService.CurrentUserPrincipalName ?? "Signed in";
+        }
     }
 
     public void Dispose()

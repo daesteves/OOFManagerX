@@ -100,19 +100,19 @@ public class AuthenticationService : IAuthenticationService
     {
         _logger.LogInformation("Attempting silent sign-in");
 
-        var accounts = await _publicClientApp.GetAccountsAsync();
-        var account = accounts.FirstOrDefault(a => 
-            _cachedUpn == null || 
-            a.Username.Equals(_cachedUpn, StringComparison.OrdinalIgnoreCase));
-
-        if (account == null)
-        {
-            _logger.LogInformation("No cached account found for silent sign-in");
-            return AuthResult.Failed("No cached account");
-        }
-
         try
         {
+            var accounts = await _publicClientApp.GetAccountsAsync();
+            var account = accounts.FirstOrDefault(a => 
+                _cachedUpn == null || 
+                a.Username.Equals(_cachedUpn, StringComparison.OrdinalIgnoreCase));
+
+            if (account == null)
+            {
+                _logger.LogInformation("No cached account found for silent sign-in");
+                return AuthResult.Failed("No cached account");
+            }
+
             _authResult = await _publicClientApp
                 .AcquireTokenSilent(Scopes, account)
                 .ExecuteAsync(cancellationToken);
@@ -126,6 +126,11 @@ public class AuthenticationService : IAuthenticationService
         {
             _logger.LogInformation("Silent sign-in requires UI interaction");
             return AuthResult.Failed("UI required");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Silent sign-in failed (transient)");
+            return AuthResult.Failed(ex.Message);
         }
     }
 

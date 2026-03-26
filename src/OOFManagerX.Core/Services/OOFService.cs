@@ -26,6 +26,7 @@ public class OOFService : IOOFService
         _authService = authService;
         _logger = logger;
         _httpClient = httpClient ?? new HttpClient();
+        _httpClient.Timeout = TimeSpan.FromSeconds(30);
     }
 
     public async Task<OOFStatus> GetCurrentOOFStatusAsync(CancellationToken cancellationToken = default)
@@ -36,7 +37,7 @@ public class OOFService : IOOFService
         if (string.IsNullOrEmpty(token))
         {
             _logger.LogWarning("Unable to get access token for OOF status check");
-            return new OOFStatus();
+            throw new InvalidOperationException("Unable to get access token");
         }
 
         try
@@ -45,6 +46,19 @@ public class OOFService : IOOFService
             request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
 
             var response = await _httpClient.SendAsync(request, cancellationToken);
+
+            // Handle 401 — token might be stale, force refresh and retry once
+            if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
+            {
+                _logger.LogWarning("Graph API returned 401, refreshing token and retrying");
+                var freshToken = await ForceTokenRefreshAsync(cancellationToken);
+                if (freshToken == null) throw new HttpRequestException("Authentication failed after token refresh");
+
+                request = new HttpRequestMessage(HttpMethod.Get, GraphEndpoint);
+                request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", freshToken);
+                response = await _httpClient.SendAsync(request, cancellationToken);
+            }
+
             response.EnsureSuccessStatusCode();
 
             var content = await response.Content.ReadAsStringAsync(cancellationToken);
@@ -227,6 +241,20 @@ public class OOFService : IOOFService
             "none" => ExternalAudienceScope.None,
             _ => ExternalAudienceScope.All
         };
+    }
+
+    /// <summary>
+    /// Forces a fresh token by calling TrySilentSignInAsync, then getting the new access token.
+    /// </summary>
+    private async Task<string?> ForceTokenRefreshAsync(CancellationToken cancellationToken)
+    {
+        var result = await _authService.TrySilentSignInAsync(cancellationToken);
+        if (!result.Success)
+        {
+            _logger.LogWarning("Token refresh via silent sign-in failed: {Error}", result.ErrorMessage);
+            return null;
+        }
+        return await _authService.GetAccessTokenAsync(cancellationToken);
     }
 
     // Response DTOs for Graph API

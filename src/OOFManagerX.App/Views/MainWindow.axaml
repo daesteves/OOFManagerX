@@ -5,7 +5,7 @@
         x:Class="OOFManagerX.App.Views.MainWindow"
         x:DataType="vm:MainViewModel"
         Width="644" Height="910"
-        MinWidth="420" MinHeight="560"
+        MinWidth="420" MinHeight="480"
         CanResize="True"
         WindowStartupLocation="CenterScreen"
         Title="OOFManagerX"
@@ -258,8 +258,13 @@
               </StackPanel>
             </StackPanel>
 
-            <TextBlock Text="✨ Supports Markdown formatting" FontSize="11"
-                       Foreground="{StaticResource TextMutedBrush}" Margin="0,2,0,0"/>
+            <StackPanel Orientation="Horizontal" Spacing="4" Margin="0,2,0,0">
+              <TextBlock Text="✨ Supports" FontSize="11"
+                         Foreground="{StaticResource TextMutedBrush}"/>
+              <TextBlock Text="Markdown formatting" FontSize="11" TextDecorations="Underline"
+                         Foreground="{StaticResource AccentLightBrush}" Cursor="Hand"
+                         PointerPressed="OnOpenMarkdownGuide"/>
+            </StackPanel>
           </StackPanel>
         </Border>
 

@@ -18,9 +18,12 @@ public class BackgroundOOFService : IBackgroundOOFService
     private System.Timers.Timer? _timer;
     private bool _isDisposed;
     private bool _isSyncing;
+    private int _consecutiveFailures;
     
     // Default polling interval: 5 minutes
     private const int DefaultPollingIntervalMs = 5 * 60 * 1000;
+    private const int MaxRetries = 2;
+    private const int RetryDelayMs = 5000;
     
     private int _pollingIntervalMs = 
         Environment.GetEnvironmentVariable("OOFMANAGERX_FAST_POLL") == "1" 
@@ -119,63 +122,97 @@ public class BackgroundOOFService : IBackgroundOOFService
     {
         _logger.LogDebug("Performing OOF sync check");
 
-        // Check if user is signed in
-        if (!_authService.IsSignedIn)
+        // Acquire a fresh token — this handles expiry/refresh automatically
+        var token = await _authService.GetAccessTokenAsync(cancellationToken);
+        if (string.IsNullOrEmpty(token))
         {
-            _logger.LogDebug("Not signed in - skipping sync");
-            UpdateSyncStatus(false, LocalizedStrings.NotSignedIn, false);
+            // Token refresh failed — try silent re-auth once
+            _logger.LogWarning("Token expired or unavailable, attempting silent re-authentication");
+            var reauth = await _authService.TrySilentSignInAsync(cancellationToken);
+            if (!reauth.Success)
+            {
+                _consecutiveFailures++;
+                _logger.LogWarning("Re-authentication failed ({Failures} consecutive failures): {Error}",
+                    _consecutiveFailures, reauth.ErrorMessage);
+                UpdateSyncStatus(false, "⚠ Sign-in expired — please sign in again", false);
+                return;
+            }
+        }
+
+        for (var attempt = 0; attempt <= MaxRetries; attempt++)
+        {
+            try
+            {
+                if (attempt > 0)
+                {
+                    var delay = RetryDelayMs * attempt;
+                    _logger.LogInformation("Retry {Attempt}/{Max} after {Delay}ms", attempt, MaxRetries, delay);
+                    await Task.Delay(delay, cancellationToken);
+                }
+
+                await PerformSyncCoreAsync(cancellationToken);
+
+                // Success — reset failure counter
+                _consecutiveFailures = 0;
+                return;
+            }
+            catch (HttpRequestException ex) when (attempt < MaxRetries)
+            {
+                _logger.LogWarning(ex, "Sync attempt {Attempt} failed (retrying)", attempt + 1);
+            }
+            catch (Exception ex)
+            {
+                _consecutiveFailures++;
+                _logger.LogError(ex, "Sync failed ({Failures} consecutive failures)", _consecutiveFailures);
+                UpdateSyncStatus(false, $"{LocalizedStrings.SyncFailed}: {ex.Message}", false);
+                return;
+            }
+        }
+    }
+
+    private async Task PerformSyncCoreAsync(CancellationToken cancellationToken)
+    {
+        var now = DateTime.Now;
+        var schedule = _scheduleService.GetSchedule();
+        var shouldBeActive = _scheduleService.ShouldOOFBeActive(now);
+        var oofWindow = _scheduleService.GetOOFScheduleWindow(now);
+
+        _logger.LogDebug("Schedule check: OOF should be {Status} at {Time}",
+            shouldBeActive ? "active" : "inactive", now);
+
+        if (oofWindow == null)
+        {
+            _logger.LogWarning("Could not calculate OOF schedule window");
+            UpdateSyncStatus(true, LocalizedStrings.OOFCorrectlyDisabled, false);
             return;
         }
 
-        try
+        var (start, end, message) = oofWindow.Value;
+
+        // Get current OOF status from Microsoft 365
+        var currentStatus = await _oofService.GetCurrentOOFStatusAsync(cancellationToken);
+
+        _logger.LogDebug("Current M365 OOF: status={Status}, scheduled={Start} to {End}",
+            currentStatus.Status,
+            currentStatus.ScheduledStartTime?.ToString("g") ?? "none",
+            currentStatus.ScheduledEndTime?.ToString("g") ?? "none");
+
+        // Check if M365 already has the correct scheduled window
+        if (NeedsScheduleUpdate(currentStatus, start, end))
         {
-            var now = DateTime.Now;
-            var schedule = _scheduleService.GetSchedule();
-            var shouldBeActive = _scheduleService.ShouldOOFBeActive(now);
-            var oofWindow = _scheduleService.GetOOFScheduleWindow(now);
-
-            _logger.LogDebug("Schedule check: OOF should be {Status} at {Time}",
-                shouldBeActive ? "active" : "inactive", now);
-
-            if (oofWindow == null)
-            {
-                _logger.LogWarning("Could not calculate OOF schedule window");
-                UpdateSyncStatus(true, LocalizedStrings.OOFCorrectlyDisabled, false);
-                return;
-            }
-
-            var (start, end, message) = oofWindow.Value;
-
-            // Get current OOF status from Microsoft 365
-            var currentStatus = await _oofService.GetCurrentOOFStatusAsync(cancellationToken);
-
-            _logger.LogDebug("Current M365 OOF: status={Status}, scheduled={Start} to {End}",
-                currentStatus.Status,
-                currentStatus.ScheduledStartTime?.ToString("g") ?? "none",
-                currentStatus.ScheduledEndTime?.ToString("g") ?? "none");
-
-            // Check if M365 already has the correct scheduled window
-            if (NeedsScheduleUpdate(currentStatus, start, end))
-            {
-                _logger.LogInformation("Setting OOF scheduled window: {Start} to {End}", start, end);
-                await _oofService.SetScheduledOOFAsync(
-                    message, start, end, schedule.ExternalAudience, cancellationToken);
-                _logger.LogInformation("OOF schedule updated successfully");
-            }
-            else
-            {
-                _logger.LogDebug("OOF schedule already correct");
-            }
-
-            // Build status message
-            var statusMessage = BuildStatusMessage(shouldBeActive, oofWindow, now);
-            UpdateSyncStatus(true, statusMessage, shouldBeActive);
+            _logger.LogInformation("Setting OOF scheduled window: {Start} to {End}", start, end);
+            await _oofService.SetScheduledOOFAsync(
+                message, start, end, schedule.ExternalAudience, cancellationToken);
+            _logger.LogInformation("OOF schedule updated successfully");
         }
-        catch (Exception ex)
+        else
         {
-            _logger.LogError(ex, "Failed to sync OOF status");
-            UpdateSyncStatus(false, $"{LocalizedStrings.SyncFailed}: {ex.Message}", false);
+            _logger.LogDebug("OOF schedule already correct");
         }
+
+        // Build status message
+        var statusMessage = BuildStatusMessage(shouldBeActive, oofWindow, now);
+        UpdateSyncStatus(true, statusMessage, shouldBeActive);
     }
 
     /// <summary>

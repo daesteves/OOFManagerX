@@ -22,6 +22,9 @@ public partial class MainWindow : Window
     private const string AppName = "OOFManagerX";
     private int _currentIntervalMs = 5 * 60 * 1000;
 
+    private const double PreferredWidth = 644;
+    private const double PreferredHeight = 910;
+
     public MainWindow()
     {
         InitializeComponent();
@@ -30,8 +33,44 @@ public partial class MainWindow : Window
 
     private void OnLoaded(object? sender, RoutedEventArgs e)
     {
+        ClampToScreen();
         UpdateStartAtBootIndicator();
         UpdateIntervalIndicators();
+    }
+
+    /// <summary>
+    /// Clamps the window size to fit the current screen's work area.
+    /// Uses the preferred size when space allows, shrinks on smaller screens.
+    /// </summary>
+    private void ClampToScreen()
+    {
+        var screen = Screens.ScreenFromWindow(this) ?? Screens.Primary;
+        if (screen == null) return;
+
+        var scaling = screen.Scaling;
+        var workArea = screen.WorkingArea;
+
+        // Convert physical pixels to DIPs
+        var availWidth = workArea.Width / scaling;
+        var availHeight = workArea.Height / scaling;
+
+        // Use preferred size, but cap to 90% of available screen
+        Width = Math.Min(PreferredWidth, availWidth * 0.9);
+        Height = Math.Min(PreferredHeight, availHeight * 0.9);
+
+        // Re-center on screen
+        var left = workArea.X / scaling + (availWidth - Width) / 2;
+        var top = workArea.Y / scaling + (availHeight - Height) / 2;
+        Position = new Avalonia.PixelPoint((int)(left * scaling), (int)(top * scaling));
+    }
+
+    protected override void OnOpened(EventArgs e)
+    {
+        base.OnOpened(e);
+
+        // Re-clamp when window is shown again (e.g., from tray on a different monitor)
+        if (IsVisible)
+            ClampToScreen();
     }
 
     protected override void OnClosing(WindowClosingEventArgs e)
@@ -328,6 +367,11 @@ public partial class MainWindow : Window
         var styledHtml = $"<html><head><style>body{{font-family:Segoe UI,sans-serif;padding:24px;max-width:600px;margin:0 auto}}</style></head><body>{html}</body></html>";
         File.WriteAllText(tempFile, styledHtml);
         Process.Start(new ProcessStartInfo(tempFile) { UseShellExecute = true });
+    }
+
+    public void OnOpenMarkdownGuide(object? sender, Avalonia.Input.PointerPressedEventArgs e)
+    {
+        Process.Start(new ProcessStartInfo("https://www.markdownguide.org/basic-syntax/") { UseShellExecute = true });
     }
 
     public void OnExit(object? sender, RoutedEventArgs e)
