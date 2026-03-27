@@ -18,7 +18,11 @@ jobs:
     runs-on: windows-latest
     strategy:
       matrix:
-        runtime: [win-x64, win-arm64]
+        include:
+          - runtime: win-x64
+            arch: x64
+          - runtime: win-arm64
+            arch: arm64
 
     steps:
       - name: Checkout code
@@ -38,6 +42,7 @@ jobs:
       - name: Run tests
         run: dotnet test ${{ env.TEST_PROJECT }} -c Release --verbosity normal
 
+      # --- Publish self-contained EXE ---
       - name: Publish self-contained EXE
         if: startsWith(github.ref, 'refs/tags/')
         run: |
@@ -56,18 +61,84 @@ jobs:
             Rename-Item "publish/${{ matrix.runtime }}/OOFManagerX.App.exe" "OOFManagerX.exe"
           }
 
-      - name: Create release zip
+      # --- Portable zip ---
+      - name: Create portable zip
         if: startsWith(github.ref, 'refs/tags/')
         run: |
+          $version = "${{ github.ref_name }}"
           $files = Get-ChildItem "publish/${{ matrix.runtime }}" -Include "OOFManagerX.exe","*.dll" -File
-          Compress-Archive -Path $files.FullName -DestinationPath "publish/OOFManagerX-${{ matrix.runtime }}.zip"
+          Compress-Archive -Path $files.FullName -DestinationPath "publish/OOFManagerX-$version-${{ matrix.runtime }}.zip"
 
-      - name: Upload artifact
+      # --- MSIX package ---
+      - name: Create self-signed certificate
+        if: startsWith(github.ref, 'refs/tags/')
+        run: |
+          $cert = New-SelfSignedCertificate -Type CodeSigningCert -Subject "CN=OOFManagerX" `
+            -CertStoreLocation Cert:\CurrentUser\My -NotAfter (Get-Date).AddYears(3)
+          $pwd = ConvertTo-SecureString -String "OOFManagerXBuild" -AsPlainText -Force
+          Export-PfxCertificate -Cert $cert -FilePath "publish/OOFManagerX.pfx" -Password $pwd | Out-Null
+          Export-Certificate -Cert $cert -FilePath "publish/OOFManagerX.cer" | Out-Null
+          echo "CERT_THUMBPRINT=$($cert.Thumbprint)" >> $env:GITHUB_ENV
+
+      - name: Build MSIX
+        if: startsWith(github.ref, 'refs/tags/')
+        run: |
+          $version = "${{ github.ref_name }}".TrimStart('v')
+          $msixVersion = "$version.0"
+          $sdkBin = Get-ChildItem "C:\Program Files (x86)\Windows Kits\10\bin\*\x64\makeappx.exe" | Select-Object -Last 1
+
+          # Prepare staging directory
+          $staging = "publish/msix-${{ matrix.arch }}"
+          New-Item $staging -ItemType Directory -Force | Out-Null
+
+          # Copy published files (EXE + native DLLs)
+          Get-ChildItem "publish/${{ matrix.runtime }}" -Include "OOFManagerX.exe","*.dll" -File | Copy-Item -Destination $staging
+
+          # Copy logo
+          Copy-Item "src/OOFManagerX.App/Assets/oofmanagerx.png" "$staging/logo.png"
+
+          # Generate AppxManifest from template
+          $manifest = Get-Content "src/OOFManagerX.App/packaging/AppxManifest.template.xml" -Raw
+          $manifest = $manifest.Replace("__VERSION__", $msixVersion).Replace("__ARCH__", "${{ matrix.arch }}")
+          Set-Content "$staging/AppxManifest.xml" $manifest
+
+          # Build MSIX
+          $msixPath = "publish/OOFManagerX-v$version-${{ matrix.runtime }}.msix"
+          & $sdkBin.FullName pack /d $staging /p $msixPath /o
+
+          # Sign MSIX
+          $signTool = Get-ChildItem "C:\Program Files (x86)\Windows Kits\10\bin\*\x64\signtool.exe" | Select-Object -Last 1
+          & $signTool.FullName sign /fd SHA256 /a /f "publish/OOFManagerX.pfx" /p "OOFManagerXBuild" $msixPath
+
+      - name: Create MSIX installer zip
+        if: startsWith(github.ref, 'refs/tags/')
+        run: |
+          $version = "${{ github.ref_name }}"
+          $versionNum = $version.TrimStart('v')
+          $files = @(
+            "publish/OOFManagerX-$versionNum-${{ matrix.runtime }}.msix",
+            "publish/OOFManagerX.cer",
+            "src/OOFManagerX.App/packaging/Install-OOFManagerX.ps1"
+          )
+
+          # Fix: msix filename includes 'v' prefix
+          $msixPath = "publish/OOFManagerX-v$versionNum-${{ matrix.runtime }}.msix"
+          $files = @($msixPath, "publish/OOFManagerX.cer", "src/OOFManagerX.App/packaging/Install-OOFManagerX.ps1")
+          Compress-Archive -Path $files -DestinationPath "publish/OOFManagerX-$version-${{ matrix.runtime }}-msix.zip"
+
+      - name: Upload portable zip
         if: startsWith(github.ref, 'refs/tags/')
         uses: actions/upload-artifact@v4
         with:
-          name: OOFManagerX-${{ matrix.runtime }}
-          path: publish/OOFManagerX-${{ matrix.runtime }}.zip
+          name: portable-${{ matrix.runtime }}
+          path: publish/OOFManagerX-${{ github.ref_name }}-${{ matrix.runtime }}.zip
+
+      - name: Upload MSIX zip
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: actions/upload-artifact@v4
+        with:
+          name: msix-${{ matrix.runtime }}
+          path: publish/OOFManagerX-${{ github.ref_name }}-${{ matrix.runtime }}-msix.zip
 
   release:
     needs: build
