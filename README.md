@@ -39,14 +39,31 @@ OOFManagerX monitors your work schedule and manages your Out-of-Office (OOF) rep
 ## Getting Started
 
 ### Prerequisites
-- Windows 10 (version 1903+) or Windows 11 (x64)
+- Windows 10 (version 1903+) or Windows 11
+- x64 or ARM64 processor
 - Microsoft 365 work or school account
 
 ### Installation
 
-1. Download the latest release from the [Releases](https://github.com/daesteves/OOFManagerX/releases) page
-2. Extract the zip to a folder of your choice (e.g., `C:\Tools\OOFManagerX`)
-3. Run `OOFManagerX.exe` from that folder
+Download the latest release from the [Releases](https://github.com/daesteves/OOFManagerX/releases) page. Two options are available for each platform (x64 and ARM64):
+
+#### Option 1: MSIX Installer (Recommended)
+
+Download `OOFManagerX-<version>-win-x64-msix.zip` (or `arm64`).
+
+1. Extract the zip
+2. Right-click `Install-OOFManagerX.ps1` → **Run with PowerShell**
+3. Accept the admin prompt — the script installs the certificate and app automatically
+4. OOFManagerX appears in your **Start Menu**
+
+> The MSIX installer provides clean install/uninstall, Start Menu integration, and automatic app isolation. Recommended for most users.
+
+#### Option 2: Portable EXE
+
+Download `OOFManagerX-<version>-win-x64.zip` (or `arm64`).
+
+1. Extract the zip to a folder of your choice (e.g., `C:\Tools\OOFManagerX`)
+2. Run `OOFManagerX.exe` from that folder
 
 > **Important:** Keep all files from the zip together in the same folder. The `.dll` files are required native libraries and must be alongside the `.exe`.
 
