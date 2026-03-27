@@ -3,27 +3,19 @@ name: Build and Release
 on:
   push:
     branches: [main]
-    tags: ['v*', 'beta-*']
+    tags: ['v*']
   pull_request:
     branches: [main]
   workflow_dispatch:
-    inputs:
-      sign_package:
-        description: 'Sign the MSIX package with Trusted Signing'
-        required: false
-        default: 'false'
-        type: boolean
 
 env:
   DOTNET_VERSION: '8.0.x'
-  SOLUTION_PATH: 'OOFManagerX.sln'
+  APP_PROJECT: 'src/OOFManagerX.App/OOFManagerX.App.csproj'
+  TEST_PROJECT: 'tests/OOFManagerX.Core.Tests/OOFManagerX.Core.Tests.csproj'
 
 jobs:
   build:
     runs-on: windows-latest
-    strategy:
-      matrix:
-        platform: [x64, arm64]
 
     steps:
       - name: Checkout code
@@ -35,164 +27,43 @@ jobs:
           dotnet-version: ${{ env.DOTNET_VERSION }}
 
       - name: Restore dependencies
-        run: dotnet restore ${{ env.SOLUTION_PATH }}
+        run: dotnet restore ${{ env.APP_PROJECT }}
 
       - name: Build
-        run: dotnet build ${{ env.SOLUTION_PATH }} -c Release -p:Platform=${{ matrix.platform }} --no-restore
+        run: dotnet build ${{ env.APP_PROJECT }} -c Release --no-restore
 
       - name: Run tests
-        run: dotnet test tests/OOFManagerX.Core.Tests/OOFManagerX.Core.Tests.csproj -c Release --no-build --verbosity normal
-        continue-on-error: true
+        run: dotnet test ${{ env.TEST_PROJECT }} -c Release --verbosity normal
 
-      # Build single-file EXE (framework-dependent)
-      - name: Build Single-File EXE
+      - name: Publish self-contained EXE
         if: startsWith(github.ref, 'refs/tags/')
         run: |
-          dotnet publish src/OOFSponder.UI/OOFSponder.UI.csproj `
+          dotnet publish ${{ env.APP_PROJECT }} `
             -c Release `
-            -r win-${{ matrix.platform }} `
-            --self-contained false `
+            -r win-x64 `
+            --self-contained `
             -p:PublishSingleFile=true `
-            -p:WindowsPackageType=None `
             -p:DebugType=none `
-            -o publish/exe-${{ matrix.platform }}
+            -o publish/win-x64
 
-      - name: Upload EXE artifact
-        if: startsWith(github.ref, 'refs/tags/')
-        uses: actions/upload-artifact@v4
-        with:
-          name: OOFSponder-exe-${{ matrix.platform }}
-          path: publish/exe-${{ matrix.platform }}/OOFSponder.UI.exe
-
-      # Build MSIX Package (unsigned)
-      - name: Build MSIX Package
+      - name: Rename EXE
         if: startsWith(github.ref, 'refs/tags/')
         run: |
-          dotnet msbuild src/OOFSponder.UI/OOFSponder.UI.csproj `
-            /t:Publish `
-            /p:Configuration=Release `
-            /p:Platform=${{ matrix.platform }} `
-            /p:GenerateAppxPackageOnBuild=true `
-            /p:AppxPackageSigningEnabled=false
+          if (Test-Path "publish/win-x64/OOFManagerX.App.exe") {
+            Rename-Item "publish/win-x64/OOFManagerX.App.exe" "OOFManagerX.exe"
+          }
 
-      - name: Upload unsigned MSIX artifact
+      - name: Create release zip
         if: startsWith(github.ref, 'refs/tags/')
-        uses: actions/upload-artifact@v4
-        with:
-          name: OOFSponder-msix-unsigned-${{ matrix.platform }}
-          path: src/OOFSponder.UI/AppPackages/**/*.msix
-
-  sign:
-    needs: build
-    runs-on: windows-latest
-    if: startsWith(github.ref, 'refs/tags/') && (github.event.inputs.sign_package == 'true' || contains(github.ref, 'release'))
-    strategy:
-      matrix:
-        platform: [x64, arm64]
-    
-    steps:
-      - name: Download unsigned MSIX
-        uses: actions/download-artifact@v4
-        with:
-          name: OOFSponder-msix-unsigned-${{ matrix.platform }}
-          path: unsigned
-
-      - name: Azure Login
-        uses: azure/login@v2
-        with:
-          creds: |
-            {
-              "clientId": "${{ secrets.AZURE_CLIENT_ID }}",
-              "clientSecret": "${{ secrets.AZURE_CLIENT_SECRET }}",
-              "subscriptionId": "${{ secrets.AZURE_SUBSCRIPTION_ID }}",
-              "tenantId": "${{ secrets.AZURE_TENANT_ID }}"
-            }
-
-      - name: Install Azure SignTool
-        run: dotnet tool install --global AzureSignTool
-
-      - name: Find and Sign MSIX
         run: |
-          $msixFile = Get-ChildItem -Path unsigned -Filter "*.msix" -Recurse | Select-Object -First 1
-          Write-Host "Signing: $($msixFile.FullName)"
-          
-          AzureSignTool sign `
-            -kvu "${{ secrets.AZURE_SIGNING_ENDPOINT }}" `
-            -kva "${{ secrets.AZURE_CLIENT_ID }}" `
-            -kvs "${{ secrets.AZURE_CLIENT_SECRET }}" `
-            -kvt "${{ secrets.AZURE_TENANT_ID }}" `
-            -kvc "${{ secrets.AZURE_CERT_PROFILE }}" `
-            -tr "http://timestamp.digicert.com" `
-            -td sha256 `
-            "$($msixFile.FullName)"
-          
-          # Move signed file to output
-          New-Item -ItemType Directory -Path "signed" -Force
-          Copy-Item $msixFile.FullName -Destination "signed/OOFSponder-${{ matrix.platform }}.msix"
-
-      - name: Upload signed MSIX
-        uses: actions/upload-artifact@v4
-        with:
-          name: OOFSponder-msix-signed-${{ matrix.platform }}
-          path: signed/*.msix
-
-  release:
-    needs: [build, sign]
-    runs-on: ubuntu-latest
-    if: startsWith(github.ref, 'refs/tags/') && always()
-    
-    steps:
-      - name: Download x64 EXE
-        uses: actions/download-artifact@v4
-        with:
-          name: OOFSponder-exe-x64
-          path: artifacts/exe
-        continue-on-error: true
-
-      - name: Download arm64 EXE
-        uses: actions/download-artifact@v4
-        with:
-          name: OOFSponder-exe-arm64
-          path: artifacts/exe-arm64
-        continue-on-error: true
-
-      - name: Download signed x64 MSIX
-        uses: actions/download-artifact@v4
-        with:
-          name: OOFSponder-msix-signed-x64
-          path: artifacts/msix
-        continue-on-error: true
-
-      - name: Download signed arm64 MSIX
-        uses: actions/download-artifact@v4
-        with:
-          name: OOFSponder-msix-signed-arm64
-          path: artifacts/msix
-        continue-on-error: true
-
-      - name: Download unsigned x64 MSIX (fallback)
-        if: failure()
-        uses: actions/download-artifact@v4
-        with:
-          name: OOFSponder-msix-unsigned-x64
-          path: artifacts/msix-unsigned
-        continue-on-error: true
-
-      - name: Rename artifacts
-        run: |
-          if [ -f "artifacts/exe/OOFSponder.UI.exe" ]; then
-            mv artifacts/exe/OOFSponder.UI.exe artifacts/OOFSponder-x64.exe
-          fi
-          if [ -f "artifacts/exe-arm64/OOFSponder.UI.exe" ]; then
-            mv artifacts/exe-arm64/OOFSponder.UI.exe artifacts/OOFSponder-arm64.exe
-          fi
+          $files = Get-ChildItem "publish/win-x64" -Include "OOFManagerX.exe","*.dll" -File
+          Compress-Archive -Path $files.FullName -DestinationPath "publish/OOFManagerX-win-x64.zip"
 
       - name: Create Release
+        if: startsWith(github.ref, 'refs/tags/')
         uses: softprops/action-gh-release@v1
         with:
-          files: |
-            artifacts/OOFSponder-*.exe
-            artifacts/msix/*.msix
+          files: publish/OOFManagerX-win-x64.zip
           generate_release_notes: true
           prerelease: ${{ contains(github.ref, 'pre') || contains(github.ref, 'beta') }}
         env:
