@@ -4,6 +4,8 @@ Automatic Out-of-Office Manager for Microsoft 365.
 
 OOFManagerX monitors your work schedule and manages your Out-of-Office (OOF) replies automatically. Define your working hours once, and OOFManagerX handles the rest -- enabling OOF when you leave and disabling it when you return, with no manual intervention required.
 
+![OOFManagerX](ReadMeImages/OOFManagerX.png)
+
 ## Features
 
 ### Schedule-Based OOF Management
@@ -37,16 +39,16 @@ OOFManagerX monitors your work schedule and manages your Out-of-Office (OOF) rep
 ## Getting Started
 
 ### Prerequisites
-- Windows 10 (version 1903+) or Windows 11
+- Windows 10 (version 1903+) or Windows 11 (x64)
 - Microsoft 365 work or school account
-- .NET 8.0 Runtime (for the lightweight build) or use the self-contained build
 
 ### Installation
 
-Download the latest release from the [Releases](https://github.com/daesteves/OOFManagerX/releases) page.
+1. Download the latest release from the [Releases](https://github.com/daesteves/OOFManagerX/releases) page
+2. Extract the zip to a folder of your choice (e.g., `C:\Tools\OOFManagerX`)
+3. Run `OOFManagerX.exe` from that folder
 
-- **Self-contained EXE** -- includes .NET runtime, no dependencies, ~85MB
-- **Framework-dependent** -- requires .NET 8 Desktop Runtime installed, smaller download
+> **Important:** Keep all files from the zip together in the same folder. The `.dll` files are required native libraries and must be alongside the `.exe`.
 
 ### First Run
 
