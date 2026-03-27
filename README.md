@@ -56,6 +56,11 @@ Download `OOFManagerX-<version>-win-x64-msix.zip` (or `arm64`).
 3. Accept the admin prompt — the script installs the certificate and app automatically
 4. OOFManagerX appears in your **Start Menu**
 
+> **Script blocked?** If you get a "running scripts is disabled" error, open PowerShell as Administrator and run:
+> ```powershell
+> powershell -ExecutionPolicy Bypass -File ".\Install-OOFManagerX.ps1"
+> ```
+
 > The MSIX installer provides clean install/uninstall, Start Menu integration, and automatic app isolation. Recommended for most users.
 
 #### Option 2: Portable EXE
