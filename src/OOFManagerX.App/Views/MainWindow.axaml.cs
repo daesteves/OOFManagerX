@@ -20,7 +20,7 @@ public partial class MainWindow : Window
 {
     private const string StartupRegistryKey = @"SOFTWARE\Microsoft\Windows\CurrentVersion\Run";
     private const string AppName = "OOFManagerX";
-    private int _currentIntervalMs = 5 * 60 * 1000;
+    private int _currentIntervalMs = 15 * 60 * 1000;
 
     private const double PreferredWidth = 644;
     private const double PreferredHeight = 910;
@@ -36,6 +36,8 @@ public partial class MainWindow : Window
         ClampToScreen();
         UpdateStartAtBootIndicator();
         UpdateIntervalIndicators();
+        UpdateSyncOutlookIndicator();
+        UpdateLayoutIndicator();
     }
 
     /// <summary>
@@ -117,11 +119,40 @@ public partial class MainWindow : Window
         catch { /* ignore registry errors */ }
     }
 
+    public void OnToggleSyncFromOutlook(object? sender, RoutedEventArgs e)
+    {
+        if (DataContext is MainViewModel vm)
+        {
+            vm.IsSyncFromOutlookEnabled = !vm.IsSyncFromOutlookEnabled;
+            UpdateSyncOutlookIndicator();
+        }
+    }
+
+    private void UpdateSyncOutlookIndicator()
+    {
+        if (this.FindControl<MenuItem>("SyncOutlookMenuItem") is { } item && DataContext is MainViewModel vm)
+            item.Header = vm.IsSyncFromOutlookEnabled ? "✅  Sync Schedule from Outlook" : "❌  Sync Schedule from Outlook";
+    }
+
+    public void OnToggleLayout(object? sender, RoutedEventArgs e)
+    {
+        if (DataContext is MainViewModel vm)
+        {
+            vm.IsHorizontalLayout = !vm.IsHorizontalLayout;
+            UpdateLayoutIndicator();
+        }
+    }
+
+    private void UpdateLayoutIndicator()
+    {
+        if (this.FindControl<MenuItem>("LayoutMenuItem") is { } item && DataContext is MainViewModel vm)
+            item.Header = vm.IsHorizontalLayout ? "✅  Compact Schedule Layout" : "❌  Compact Schedule Layout";
+    }
+
     private void UpdateIntervalIndicators()
     {
         var intervals = new (string Name, int Ms, string Label)[]
         {
-            ("Interval1m", 60000, "1 minute"),
             ("Interval5m", 300000, "5 minutes"),
             ("Interval15m", 900000, "15 minutes"),
             ("Interval30m", 1800000, "30 minutes"),
@@ -153,7 +184,6 @@ public partial class MainWindow : Window
 
     private static string GetIntervalLabel(int ms) => ms switch
     {
-        60000 => "1 min",
         300000 => "5 min",
         900000 => "15 min",
         1800000 => "30 min",

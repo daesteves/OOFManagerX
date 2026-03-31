@@ -20,8 +20,8 @@ public class BackgroundOOFService : IBackgroundOOFService
     private bool _isSyncing;
     private int _consecutiveFailures;
     
-    // Default polling interval: 5 minutes
-    private const int DefaultPollingIntervalMs = 5 * 60 * 1000;
+    // Default polling interval: 15 minutes
+    private const int DefaultPollingIntervalMs = 15 * 60 * 1000;
     private const int MaxRetries = 2;
     private const int RetryDelayMs = 5000;
     

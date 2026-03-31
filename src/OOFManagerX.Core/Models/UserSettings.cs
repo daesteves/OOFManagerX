@@ -5,23 +5,19 @@ namespace OOFManagerX.Core.Models;
 /// </summary>
 public record UserSettings
 {
-    /// <summary>
-    /// Start the application minimized to system tray.
-    /// </summary>
     public bool StartMinimized { get; init; }
-
-    /// <summary>
-    /// Start the application automatically on Windows login.
-    /// </summary>
     public bool StartWithWindows { get; init; }
-
-    /// <summary>
-    /// Enable or disable OOF monitoring and synchronization.
-    /// </summary>
     public bool MonitoringEnabled { get; init; } = true;
 
     /// <summary>
-    /// The currently logged-in user's email/UPN.
+    /// Auto-import working hours from Outlook/Exchange. When enabled, manual schedule editing is disabled.
     /// </summary>
+    public bool SyncWorkingHoursFromOutlook { get; init; }
+
+    /// <summary>
+    /// Schedule layout: true = horizontal (compact), false = vertical (classic).
+    /// </summary>
+    public bool HorizontalScheduleLayout { get; init; } = true;
+
     public string? UserPrincipalName { get; init; }
 }

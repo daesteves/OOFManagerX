@@ -32,6 +32,11 @@ public interface IOOFService
     /// Disables OOF.
     /// </summary>
     Task DisableOOFAsync(CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Gets the user's working hours from Outlook/Exchange.
+    /// </summary>
+    Task<WorkingDay[]> GetOutlookWorkingHoursAsync(CancellationToken cancellationToken = default);
 }
 
 /// <summary>

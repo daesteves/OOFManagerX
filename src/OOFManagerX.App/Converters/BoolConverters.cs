@@ -11,4 +11,9 @@ public static class BoolConverters
 
     public static readonly IValueConverter ToChevron =
         new FuncValueConverter<bool, string>(b => b ? "▾" : "▸");
+
+    public static readonly IValueConverter ToSyncHint =
+        new FuncValueConverter<bool, string>(b => b
+            ? "Working hours are imported from Outlook"
+            : "Edit your schedule manually below");
 }

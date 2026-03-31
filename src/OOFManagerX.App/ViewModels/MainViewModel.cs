@@ -34,11 +34,15 @@ public partial class MainViewModel : ViewModelBase, IDisposable
     [ObservableProperty] private bool _isUpdateAvailable;
     [ObservableProperty] private string _updateMessage = string.Empty;
     [ObservableProperty] private string _updateUrl = string.Empty;
+    [ObservableProperty] private bool _isSyncFromOutlookEnabled = true;
+    [ObservableProperty] private bool _isHorizontalLayout = true;
 
     public ObservableCollection<WorkingDayViewModel> WorkingDays { get; } = new();
     public string[] ExternalAudienceOptions { get; } = ["None", "Contacts Only", "All"];
 
     public bool IsNotSignedIn => !IsSignedIn;
+    public bool IsScheduleEditable => !IsSyncFromOutlookEnabled;
+    public bool IsVerticalLayout => !IsHorizontalLayout;
     public string MonitoringStatusText => IsMonitoringEnabled ? "Monitoring" : "Paused";
     public string MonitoringIcon => IsMonitoringEnabled ? "\uE768" : "\uE769";
 
@@ -80,6 +84,71 @@ public partial class MainViewModel : ViewModelBase, IDisposable
         else _ = _backgroundService.StopAsync();
     }
 
+    partial void OnIsSyncFromOutlookEnabledChanged(bool value)
+    {
+        OnPropertyChanged(nameof(IsScheduleEditable));
+        _ = SaveSyncPreferenceAndRefreshAsync(value);
+    }
+
+    partial void OnIsHorizontalLayoutChanged(bool value)
+    {
+        OnPropertyChanged(nameof(IsVerticalLayout));
+        // Update day name format
+        foreach (var day in WorkingDays)
+            day.UpdateDayName(value);
+        _ = SaveLayoutPreferenceAsync(value);
+    }
+
+    private async Task SaveLayoutPreferenceAsync(bool horizontal)
+    {
+        try
+        {
+            var settings = await _settingsService.LoadUserSettingsAsync();
+            await _settingsService.SaveUserSettingsAsync(settings with { HorizontalScheduleLayout = horizontal });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to save layout preference");
+        }
+    }
+
+    private async Task SaveSyncPreferenceAndRefreshAsync(bool syncEnabled)
+    {
+        try
+        {
+            var settings = await _settingsService.LoadUserSettingsAsync();
+            await _settingsService.SaveUserSettingsAsync(settings with { SyncWorkingHoursFromOutlook = syncEnabled });
+
+            if (syncEnabled && IsSignedIn)
+                await SyncWorkingHoursFromOutlookAsync();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to save sync preference");
+        }
+    }
+
+    private async Task SyncWorkingHoursFromOutlookAsync()
+    {
+        try
+        {
+            StatusMessage = "Syncing schedule from Outlook...";
+            var outlookDays = await _oofService.GetOutlookWorkingHoursAsync();
+
+            var currentSchedule = _scheduleService.GetSchedule();
+            var updatedSchedule = currentSchedule with { WorkingDays = outlookDays.ToList() };
+            await _scheduleService.SaveScheduleAsync(updatedSchedule);
+
+            InitializeWorkingDays();
+            StatusMessage = "Schedule synced from Outlook";
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to sync working hours from Outlook");
+            StatusMessage = "Could not sync from Outlook — using local schedule";
+        }
+    }
+
     partial void OnIsPrimaryOOFSelectedChanged(bool value)
     {
         if (value) LoadMessagesFromSchedule();
@@ -98,6 +167,14 @@ public partial class MainViewModel : ViewModelBase, IDisposable
             StatusMessage = "Initializing...";
 
             await _scheduleService.InitializeAsync();
+
+            // Load user preferences (bypass change handler during init)
+            var userSettings = await _settingsService.LoadUserSettingsAsync();
+            SetProperty(ref _isSyncFromOutlookEnabled, userSettings.SyncWorkingHoursFromOutlook, nameof(IsSyncFromOutlookEnabled));
+            SetProperty(ref _isHorizontalLayout, userSettings.HorizontalScheduleLayout, nameof(IsHorizontalLayout));
+            OnPropertyChanged(nameof(IsScheduleEditable));
+            OnPropertyChanged(nameof(IsVerticalLayout));
+
             InitializeWorkingDays();
             LoadMessagesFromSchedule();
 
@@ -119,6 +196,10 @@ public partial class MainViewModel : ViewModelBase, IDisposable
                 IsSignedIn = true;
                 UserDisplayName = authResult.UserPrincipalName ?? "Signed in";
                 await StartMonitoringAsync();
+
+                // Sync working hours from Outlook on startup if enabled
+                if (IsSyncFromOutlookEnabled)
+                    await SyncWorkingHoursFromOutlookAsync();
             }
 
             StatusMessage = "Ready";
@@ -140,7 +221,7 @@ public partial class MainViewModel : ViewModelBase, IDisposable
         var schedule = _scheduleService.GetSchedule();
         foreach (var day in schedule.WorkingDays)
         {
-            var vm = new WorkingDayViewModel(day);
+            var vm = new WorkingDayViewModel(day, IsHorizontalLayout);
             vm.PropertyChanged += async (_, e) =>
             {
                 if (e.PropertyName is nameof(WorkingDayViewModel.StartTimeText)
@@ -308,7 +389,7 @@ public partial class MainViewModel : ViewModelBase, IDisposable
 public partial class WorkingDayViewModel : ViewModelBase
 {
     public DayOfWeek DayOfWeek { get; }
-    public string DayName { get; }
+    [ObservableProperty] private string _dayName;
 
     [ObservableProperty] private string _startTimeText;
     [ObservableProperty] private string _endTimeText;
@@ -318,14 +399,17 @@ public partial class WorkingDayViewModel : ViewModelBase
 
     partial void OnIsOffWorkChanged(bool value) => OnPropertyChanged(nameof(IsNotOffWork));
 
-    public WorkingDayViewModel(WorkingDay model)
+    public WorkingDayViewModel(WorkingDay model, bool horizontal = true)
     {
         DayOfWeek = model.DayOfWeek;
-        DayName = model.DayOfWeek.ToString();
+        _dayName = horizontal ? model.DayOfWeek.ToString()[..3] : model.DayOfWeek.ToString();
         _startTimeText = model.StartTime.ToString("HH:mm");
         _endTimeText = model.EndTime.ToString("HH:mm");
         _isOffWork = model.IsOffWork;
     }
+
+    public void UpdateDayName(bool horizontal) =>
+        DayName = horizontal ? DayOfWeek.ToString()[..3] : DayOfWeek.ToString();
 
     public WorkingDay ToModel()
     {

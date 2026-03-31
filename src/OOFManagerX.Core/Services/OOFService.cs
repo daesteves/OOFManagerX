@@ -261,6 +261,7 @@ public class OOFService : IOOFService
     private class MailboxSettingsResponse
     {
         public AutomaticRepliesSettingResponse? AutomaticRepliesSetting { get; set; }
+        public WorkingHoursResponse? WorkingHours { get; set; }
     }
 
     private class AutomaticRepliesSettingResponse
@@ -277,5 +278,77 @@ public class OOFService : IOOFService
     {
         public DateTime DateTime { get; set; }
         public string? TimeZone { get; set; }
+    }
+
+    private class WorkingHoursResponse
+    {
+        public string[]? DaysOfWeek { get; set; }
+        public string? StartTime { get; set; }
+        public string? EndTime { get; set; }
+        public TimeZoneBaseResponse? TimeZone { get; set; }
+    }
+
+    private class TimeZoneBaseResponse
+    {
+        public string? Name { get; set; }
+    }
+
+    public async Task<WorkingDay[]> GetOutlookWorkingHoursAsync(CancellationToken cancellationToken = default)
+    {
+        _logger.LogInformation("Getting working hours from Outlook");
+
+        var token = await _authService.GetAccessTokenAsync(cancellationToken);
+        if (string.IsNullOrEmpty(token))
+            throw new InvalidOperationException("Unable to get access token");
+
+        var request = new HttpRequestMessage(HttpMethod.Get, GraphEndpoint);
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+
+        var response = await _httpClient.SendAsync(request, cancellationToken);
+
+        if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
+        {
+            var freshToken = await ForceTokenRefreshAsync(cancellationToken);
+            if (freshToken == null) throw new HttpRequestException("Authentication failed");
+            request = new HttpRequestMessage(HttpMethod.Get, GraphEndpoint);
+            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", freshToken);
+            response = await _httpClient.SendAsync(request, cancellationToken);
+        }
+
+        response.EnsureSuccessStatusCode();
+
+        var content = await response.Content.ReadAsStringAsync(cancellationToken);
+        var settings = JsonSerializer.Deserialize<MailboxSettingsResponse>(content,
+            new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+
+        var wh = settings?.WorkingHours;
+        if (wh?.DaysOfWeek == null || wh.StartTime == null || wh.EndTime == null)
+        {
+            _logger.LogWarning("No working hours configured in Outlook, using defaults");
+            return OOFSchedule.CreateDefaultWeek().ToArray();
+        }
+
+        // Parse TimeOfDay strings like "08:00:00.0000000"
+        var startTime = TimeOnly.Parse(wh.StartTime);
+        var endTime = TimeOnly.Parse(wh.EndTime);
+
+        var workDays = new HashSet<DayOfWeek>();
+        foreach (var day in wh.DaysOfWeek)
+        {
+            if (Enum.TryParse<DayOfWeek>(day, ignoreCase: true, out var dow))
+                workDays.Add(dow);
+        }
+
+        _logger.LogInformation("Outlook working hours: {Start}-{End}, days: {Days}",
+            startTime, endTime, string.Join(", ", workDays));
+
+        var result = new WorkingDay[7];
+        for (var i = 0; i < 7; i++)
+        {
+            var dow = (DayOfWeek)i;
+            result[i] = new WorkingDay(dow, startTime, endTime, !workDays.Contains(dow));
+        }
+
+        return result;
     }
 }
