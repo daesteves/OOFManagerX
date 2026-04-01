@@ -110,13 +110,27 @@ public partial class MainWindow : Window
             }
             else
             {
-                var exePath = Environment.ProcessPath ?? Process.GetCurrentProcess().MainModule?.FileName;
-                if (exePath != null) key?.SetValue(AppName, $"\"{exePath}\" --minimized");
+                var exePath = Environment.ProcessPath
+                    ?? Process.GetCurrentProcess().MainModule?.FileName
+                    ?? System.Reflection.Assembly.GetEntryAssembly()?.Location;
+
+                if (string.IsNullOrEmpty(exePath))
+                {
+                    if (DataContext is MainViewModel vm)
+                        vm.StatusMessage = "Could not determine app path for startup";
+                    return;
+                }
+
+                key?.SetValue(AppName, $"\"{exePath}\" --minimized");
             }
 
             UpdateStartAtBootIndicator();
         }
-        catch { /* ignore registry errors */ }
+        catch (Exception ex)
+        {
+            if (DataContext is MainViewModel vm)
+                vm.StatusMessage = $"Start at boot failed: {ex.Message}";
+        }
     }
 
     public void OnToggleSyncFromOutlook(object? sender, RoutedEventArgs e)

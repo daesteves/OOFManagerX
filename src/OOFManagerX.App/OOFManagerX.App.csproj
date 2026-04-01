@@ -9,7 +9,7 @@
     <ApplicationIcon>Assets\oofmanagerx.ico</ApplicationIcon>
 
     <!-- App Info -->
-    <Version>0.4.0</Version>
+    <Version>0.4.1</Version>
     <Authors>Evan Basalik, Cameron Battagler, Diogo Esteves</Authors>
     <Product>OOFManagerX</Product>
     <Description>Out of Office management for Microsoft 365</Description>
