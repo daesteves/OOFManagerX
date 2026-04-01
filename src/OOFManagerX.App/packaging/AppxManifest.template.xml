@@ -36,6 +36,14 @@
         BackgroundColor="transparent"
         Square150x150Logo="logo.png"
         Square44x44Logo="logo.png" />
+      <Extensions>
+        <uap5:Extension Category="windows.startupTask"
+                        xmlns:uap5="http://schemas.microsoft.com/appx/manifest/uap/windows10/5">
+          <uap5:StartupTask TaskId="OOFManagerXStartup"
+                            Enabled="false"
+                            DisplayName="OOFManagerX" />
+        </uap5:Extension>
+      </Extensions>
     </Application>
   </Applications>
 

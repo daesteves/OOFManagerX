@@ -100,6 +100,16 @@ public partial class MainWindow : Window
 
     public void OnToggleStartAtBoot(object? sender, RoutedEventArgs e)
     {
+        if (IsRunningAsMsix())
+            ToggleStartupMsix();
+        else
+            ToggleStartupRegistry();
+
+        UpdateStartAtBootIndicator();
+    }
+
+    private void ToggleStartupRegistry()
+    {
         try
         {
             var enabled = IsStartWithWindowsEnabled();
@@ -123,14 +133,50 @@ public partial class MainWindow : Window
 
                 key?.SetValue(AppName, $"\"{exePath}\" --minimized");
             }
-
-            UpdateStartAtBootIndicator();
         }
         catch (Exception ex)
         {
             if (DataContext is MainViewModel vm)
                 vm.StatusMessage = $"Start at boot failed: {ex.Message}";
         }
+    }
+
+    private async void ToggleStartupMsix()
+    {
+        try
+        {
+            var task = await Windows.ApplicationModel.StartupTask.GetAsync("OOFManagerXStartup");
+            if (task.State == Windows.ApplicationModel.StartupTaskState.Enabled)
+            {
+                task.Disable();
+            }
+            else
+            {
+                var result = await task.RequestEnableAsync();
+                if (result != Windows.ApplicationModel.StartupTaskState.Enabled &&
+                    result != Windows.ApplicationModel.StartupTaskState.EnabledByPolicy)
+                {
+                    if (DataContext is MainViewModel vm)
+                        vm.StatusMessage = "Startup was denied by system policy";
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            if (DataContext is MainViewModel vm)
+                vm.StatusMessage = $"Start at boot failed: {ex.Message}";
+        }
+    }
+
+    private static bool IsRunningAsMsix()
+    {
+        try
+        {
+            // Windows.ApplicationModel.Package.Current throws if not running as MSIX
+            _ = Windows.ApplicationModel.Package.Current.Id;
+            return true;
+        }
+        catch { return false; }
     }
 
     public void OnToggleSyncFromOutlook(object? sender, RoutedEventArgs e)
@@ -209,6 +255,13 @@ public partial class MainWindow : Window
     {
         try
         {
+            if (IsRunningAsMsix())
+            {
+                var task = Windows.ApplicationModel.StartupTask.GetAsync("OOFManagerXStartup").GetAwaiter().GetResult();
+                return task.State == Windows.ApplicationModel.StartupTaskState.Enabled
+                    || task.State == Windows.ApplicationModel.StartupTaskState.EnabledByPolicy;
+            }
+
             using var key = Registry.CurrentUser.OpenSubKey(StartupRegistryKey);
             return key?.GetValue(AppName) != null;
         }
